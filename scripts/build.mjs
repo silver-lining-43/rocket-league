@@ -1,0 +1,16 @@
+import { build } from 'esbuild';
+import { mkdir, readFile, writeFile, copyFile } from 'node:fs/promises';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const result = await build({ entryPoints: [resolve(root,'src/main.js')], bundle: true, write: false, minify: true, format: 'iife', target: ['es2020'], legalComments: 'inline' });
+const js = result.outputFiles.find(f => f.path.endsWith('.js'))?.text ?? result.outputFiles[0].text;
+const css = await readFile(resolve(root,'src/style.css'),'utf8');
+const notices=await readFile(resolve(root,'THIRD_PARTY_NOTICES.txt'),'utf8');
+const html = `<!doctype html>\n<!--\n${notices}\n-->\n<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#070d1d"><meta name="description" content="NEON STRIKE — original 3D rocket-powered car soccer. Play against AI, jump, flip and boost. Fully offline."><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23091022'/%3E%3Ctext x='11' y='48' fill='%2378ffe3' font-family='Arial' font-size='46' font-weight='900'%3EN%3C/text%3E%3C/svg%3E"><title>NEON STRIKE · Rocket Car Soccer</title><style>${css}</style></head><body><div id="game"><canvas id="arena" aria-label="3D rocket car soccer arena"></canvas></div><noscript>This game needs JavaScript enabled.</noscript><script>${js.replace(/<\/script/gi,'<\\/script')}</script></body></html>`;
+for (const dir of ['dist','docs']) await mkdir(resolve(root,dir),{recursive:true});
+await writeFile(resolve(root,'index.html'),html);
+await copyFile(resolve(root,'index.html'),resolve(root,'docs/index.html'));
+await copyFile(resolve(root,'index.html'),resolve(root,'dist/index.html'));
+await writeFile(resolve(root,'docs/.nojekyll'),'');
+console.log(`Built three identical, self-contained HTML files (${(Buffer.byteLength(html)/1024).toFixed(0)} KiB each).`);

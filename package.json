@@ -1,0 +1,8 @@
+{
+  "name": "neon-strike", "version": "1.0.0", "private": true, "type": "module",
+  "description": "An original offline-ready 3D rocket car soccer game",
+  "repository": "https://github.com/silver-lining-43/rocket-league",
+  "scripts": { "build": "node scripts/build.mjs", "dev": "node scripts/serve.mjs", "test": "node --test tests/*.test.mjs" },
+  "dependencies": { "three": "0.180.0", "cannon-es": "0.20.0" },
+  "devDependencies": { "esbuild": "0.25.10" }
+}

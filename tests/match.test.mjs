@@ -1,0 +1,10 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { Match } from '../src/match.js';
+const playing=(duration=300)=>{const m=new Match();m.start({duration});m.tick(3);m.events=[];assert.equal(m.phase,'playing');return m;};
+test('kickoff countdown freezes match timer; restart resets every match field',()=>{const m=new Match();m.start();m.tick(1);assert.equal(m.time,300);assert.equal(m.phase,'kickoff');m.tick(2);assert.equal(m.phase,'playing');m.scores=[3,2];m.overtime=true;m.start();assert.deepEqual(m.scores,[0,0]);assert.equal(m.overtime,false);assert.equal(m.time,300);});
+test('goal requires ball beyond the opening; only one point per celebration',()=>{const m=playing();assert.equal(m.checkGoal({x:0,y:2,z:52}),false);assert.equal(m.checkGoal({x:15,y:2,z:55}),false);assert.equal(m.checkGoal({x:0,y:12,z:55}),false);assert.equal(m.checkGoal({x:0,y:2,z:54}),true);assert.deepEqual(m.scores,[1,0]);assert.equal(m.checkGoal({x:0,y:2,z:55}),false);assert.deepEqual(m.scores,[1,0]);m.tick(3.3);assert.equal(m.phase,'kickoff');assert(m.events.some(e=>e.type==='reset'));});
+test('pausing freezes timer, countdown and goal detection',()=>{const m=playing();m.pause();m.tick(50);assert.equal(m.time,300);assert.equal(m.checkGoal({x:0,y:2,z:55}),false);m.resume();m.tick(2);assert.equal(m.time,298);});
+test('tied regulation enters overtime; next goal ends match',()=>{const m=playing(1);m.tick(1);assert.equal(m.overtime,true);assert.equal(m.phase,'kickoff');m.tick(3);m.tick(2);assert.equal(m.time,2);m.goal('orange');m.tick(3.3);assert.equal(m.phase,'results');assert.equal(m.events.at(-1).winner,'orange');});
+test('regulation winner ends match and freeplay has no timer',()=>{const m=playing(1);m.scores=[2,1];m.tick(1);assert.equal(m.phase,'results');const f=new Match();f.start({mode:'freeplay'});f.tick(3);f.tick(5000);assert.equal(f.phase,'playing');assert.equal(f.time,300);});
+test('simulation timer is consistent across different render frame rates',()=>{const run=hz=>{const m=playing();for(let i=0;i<hz*20;i++)m.tick(1/hz);return m.time;};assert(Math.abs(run(30)-run(144))<1e-8);});
